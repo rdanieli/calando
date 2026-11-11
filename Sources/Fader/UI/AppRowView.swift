@@ -25,7 +25,7 @@ struct AppRowView: View {
                         Image(systemName: "waveform")
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundStyle(Color.accentColor)
-                            .help("Tocando agora")
+                            .help("Playing now")
                     }
                     Spacer(minLength: 6)
                     Text(percentText(app.volume))
@@ -46,7 +46,7 @@ struct AppRowView: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(app.isMuted ? Color.red : Color.secondary)
-                    .help(app.isMuted ? "Reativar o som de \(app.name)" : "Silenciar \(app.name)")
+                    .help(app.isMuted ? "Unmute \(app.name)" : "Mute \(app.name)")
 
                     Slider(value: volumeBinding, in: VolumeCurve.minimum...VolumeCurve.maximum)
                         .controlSize(.small)

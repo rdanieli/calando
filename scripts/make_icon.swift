@@ -4,7 +4,7 @@ import Foundation
 
 let arguments = CommandLine.arguments
 guard arguments.count == 2 else {
-    FileHandle.standardError.write(Data("uso: make_icon <saida.png>\n".utf8))
+    FileHandle.standardError.write(Data("usage: make_icon <output.png>\n".utf8))
     exit(64)
 }
 

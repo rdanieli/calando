@@ -25,4 +25,4 @@ done
 iconutil -c icns "$WORK/Fader.iconset" -o Resources/Fader.icns
 sips -z 256 256 "$WORK/icon_1024.png" --out docs/icon.png >/dev/null
 
-echo "Icone gerado: $ROOT/Resources/Fader.icns"
+echo "Icon generated: $ROOT/Resources/Fader.icns"

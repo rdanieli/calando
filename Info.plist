@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
-    <string>pt-BR</string>
+    <string>en</string>
     <key>CFBundleDisplayName</key>
     <string>Fader</string>
     <key>CFBundleExecutable</key>
@@ -19,15 +19,15 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>1.0.1</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2</string>
     <key>LSMinimumSystemVersion</key>
     <string>15.0</string>
     <key>LSUIElement</key>
     <true/>
     <key>NSAudioCaptureUsageDescription</key>
-    <string>O Fader intercepta o áudio dos seus aplicativos apenas para ajustar o volume de cada um localmente, em tempo real. Nenhum áudio é gravado, armazenado ou enviado para fora deste Mac.</string>
+    <string>Fader taps the audio of your apps only to adjust the volume of each one locally, in real time. No audio is recorded, stored or sent off this Mac.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSPrincipalClass</key>

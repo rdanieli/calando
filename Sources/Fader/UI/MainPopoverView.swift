@@ -86,12 +86,12 @@ private struct HeaderView: View {
                 Button {
                     engine.resetAll()
                 } label: {
-                    Label("Resetar Todos", systemImage: "arrow.counterclockwise")
+                    Label("Reset All", systemImage: "arrow.counterclockwise")
                         .font(.system(size: 11))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
-                .help("Volta todos os aplicativos para 100%")
+                .help("Set every app back to 100%")
             }
 
             HStack(spacing: 8) {
@@ -106,7 +106,7 @@ private struct HeaderView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(engine.isMasterMuted ? Color.red : Color.primary)
                 .disabled(!engine.isMasterMuteAvailable)
-                .help(engine.isMasterMuted ? "Reativar o som" : "Silenciar a saída")
+                .help(engine.isMasterMuted ? "Unmute output" : "Mute output")
 
                 Slider(value: masterBinding, in: 0...1)
                     .controlSize(.small)
@@ -136,10 +136,10 @@ private struct EmptyStateView: View {
             Image(systemName: "waveform.slash")
                 .font(.system(size: 22))
                 .foregroundStyle(.tertiary)
-            Text("Nenhum aplicativo com áudio")
+            Text("No apps with audio")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.secondary)
-            Text("Os aplicativos aparecem aqui assim que abrem uma sessão de áudio.")
+            Text("Apps show up here as soon as they open an audio session.")
                 .font(.system(size: 11))
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -155,11 +155,11 @@ private struct FooterView: View {
 
     var body: some View {
         HStack {
-            Toggle("Iniciar no Login", isOn: loginBinding)
+            Toggle("Launch at Login", isOn: loginBinding)
                 .toggleStyle(.checkbox)
                 .font(.system(size: 11))
             Spacer()
-            Button("Sair") {
+            Button("Quit") {
                 NSApplication.shared.terminate(nil)
             }
             .controlSize(.small)
@@ -179,7 +179,7 @@ private struct FooterView: View {
                         try SMAppService.mainApp.unregister()
                     }
                 } catch {
-                    Self.log.error("Falha ao alterar o item de login: \(error.localizedDescription, privacy: .public)")
+                    Self.log.error("Failed to change the login item: \(error.localizedDescription, privacy: .public)")
                 }
                 launchesAtLogin = SMAppService.mainApp.status == .enabled
             }

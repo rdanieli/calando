@@ -27,4 +27,4 @@ plutil -lint "$APP/Contents/Info.plist"
 codesign --force --deep --sign - --entitlements Fader.entitlements "$APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
 
-echo "Bundle pronto: $ROOT/$APP"
+echo "Bundle ready: $ROOT/$APP"

@@ -69,7 +69,7 @@ extension AudioObjectID {
         }
         guard Int(size) == byteCount else {
             coreAudioLog.error(
-                "GetPropertyData \(fourCharacterCode(selector), privacy: .public) no objeto \(self) devolveu \(size) bytes, esperado \(byteCount)"
+                "GetPropertyData \(fourCharacterCode(selector), privacy: .public) on object \(self) returned \(size) bytes, expected \(byteCount)"
             )
             return nil
         }
@@ -133,7 +133,7 @@ extension AudioObjectID {
 
     private func logFailure(_ operation: String, selector: AudioObjectPropertySelector, status: OSStatus) {
         coreAudioLog.error(
-            "\(operation, privacy: .public) \(fourCharacterCode(selector), privacy: .public) falhou no objeto \(self): \(describeStatus(status), privacy: .public)"
+            "\(operation, privacy: .public) \(fourCharacterCode(selector), privacy: .public) failed on object \(self): \(describeStatus(status), privacy: .public)"
         )
     }
 }

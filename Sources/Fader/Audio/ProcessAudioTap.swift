@@ -172,15 +172,15 @@ enum ProcessAudioTapError: Error, CustomStringConvertible {
     var description: String {
         switch self {
         case .tapCreationFailed(let status):
-            return "AudioHardwareCreateProcessTap falhou: \(describeStatus(status))"
+            return "AudioHardwareCreateProcessTap failed: \(describeStatus(status))"
         case .outputDeviceUIDUnavailable:
-            return "UID do dispositivo de saída indisponível"
+            return "Output device UID unavailable"
         case .aggregateCreationFailed(let status):
-            return "AudioHardwareCreateAggregateDevice falhou: \(describeStatus(status))"
+            return "AudioHardwareCreateAggregateDevice failed: \(describeStatus(status))"
         case .unsupportedTapFormat:
-            return "Formato do tap não é Float32 linear PCM"
+            return "Tap format is not Float32 linear PCM"
         case .alreadyReleased:
-            return "Tap já foi encerrado"
+            return "Tap was already torn down"
         }
     }
 }
@@ -211,7 +211,7 @@ private final class TapIOSession: @unchecked Sendable {
         var newProcID: AudioDeviceIOProcID?
         var status = AudioDeviceCreateIOProcID(aggregateDeviceID, faderRenderProc, renderState, &newProcID)
         guard status == noErr, let newProcID else {
-            coreAudioLog.error("AudioDeviceCreateIOProcID falhou para pid \(self.ownerPID): \(describeStatus(status), privacy: .public)")
+            coreAudioLog.error("AudioDeviceCreateIOProcID failed for pid \(self.ownerPID): \(describeStatus(status), privacy: .public)")
             return
         }
         ioProcID = newProcID
@@ -219,12 +219,12 @@ private final class TapIOSession: @unchecked Sendable {
 
         status = AudioDeviceStart(aggregateDeviceID, newProcID)
         guard status == noErr else {
-            coreAudioLog.error("AudioDeviceStart falhou para pid \(self.ownerPID): \(describeStatus(status), privacy: .public)")
+            coreAudioLog.error("AudioDeviceStart failed for pid \(self.ownerPID): \(describeStatus(status), privacy: .public)")
             return
         }
         isRunning = true
         coreAudioLog.notice(
-            "IO do tap pid \(self.ownerPID) rodando: IOProc \(String(describing: procReady - began), privacy: .public), AudioDeviceStart \(String(describing: clock.now - procReady), privacy: .public)"
+            "Tap IO for pid \(self.ownerPID) running: IOProc \(String(describing: procReady - began), privacy: .public), AudioDeviceStart \(String(describing: clock.now - procReady), privacy: .public)"
         )
     }
 
@@ -253,7 +253,7 @@ private final class TapIOSession: @unchecked Sendable {
 
     private func report(_ status: OSStatus, _ operation: String) {
         guard status != noErr else { return }
-        coreAudioLog.error("\(operation, privacy: .public) falhou para pid \(self.ownerPID): \(describeStatus(status), privacy: .public)")
+        coreAudioLog.error("\(operation, privacy: .public) failed for pid \(self.ownerPID): \(describeStatus(status), privacy: .public)")
     }
 }
 

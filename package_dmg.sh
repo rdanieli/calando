@@ -19,4 +19,4 @@ diskutil image create from --format UDZO --volumeName "Fader" "$STAGING" "$DMG"
 hdiutil verify "$DMG"
 shasum -a 256 "$DMG"
 
-echo "Instalador pronto: $ROOT/$DMG"
+echo "Installer ready: $ROOT/$DMG"

@@ -1,68 +1,68 @@
 <p align="center">
-  <img src="docs/icon.png" width="128" height="128" alt="Ícone do Fader">
+  <img src="docs/icon.png" width="128" height="128" alt="Fader icon">
 </p>
 
 <h1 align="center">Fader</h1>
 
-<p align="center">Controle de volume por aplicativo na barra de menus do macOS.</p>
+<p align="center">Per app volume control in the macOS menu bar.</p>
 
-O Fader ajusta o volume (0% a 150%) e o mute de cada aplicativo em tempo real. Ele usa somente a API nativa Core Audio Process Tap (`AudioHardwareCreateProcessTap`): não instala driver virtual, não tem dependências externas e não abre nenhuma conexão de rede.
+Fader adjusts the volume (0% to 150%) and mute state of each app in real time. It relies only on the native Core Audio Process Tap API (`AudioHardwareCreateProcessTap`): no virtual driver, no external dependencies and no network connections.
 
-## Requisitos
+## Requirements
 
-* macOS 15.0 ou mais recente
-* Mac com Apple Silicon (arm64)
+* macOS 15.0 or later
+* Apple Silicon Mac (arm64)
 
-## Instalação
+## Install
 
-1. Baixe o `Fader-1.0.0.dmg` na página de [Releases](../../releases).
-2. Abra o DMG e arraste o `Fader.app` para a pasta Aplicativos.
-3. O app é assinado localmente (ad hoc), sem notarização da Apple. Na primeira abertura o Gatekeeper bloqueia. Libere com:
+1. Download the latest `Fader-<version>.dmg` from the [Releases](../../releases) page.
+2. Open the DMG and drag `Fader.app` into the Applications folder.
+3. The app is signed locally (ad hoc) and is not notarized by Apple, so Gatekeeper blocks the first launch. Allow it with:
 
    ```bash
    xattr -dr com.apple.quarantine /Applications/Fader.app
    ```
 
-4. Abra o Fader. Ele aparece só na barra de menus, sem ícone no Dock.
-5. Ao mexer no primeiro slider, o macOS pede a permissão de captura de áudio do sistema. Aceite: sem ela o aplicativo controlado fica mudo.
+4. Open Fader. It lives only in the menu bar, with no Dock icon.
+5. The first time you move a slider, macOS asks for the system audio capture permission. Accept it: without it the controlled app goes silent.
 
-## Uso
+## Usage
 
-* Clique no ícone de sliders na barra de menus.
-* O cabeçalho mostra o dispositivo de saída atual, o volume master e o mute master.
-* Cada aplicativo com sessão de áudio aberta ganha uma linha com mute, slider e percentual. O ícone de onda indica quem está tocando agora.
-* O slider vai até 150%. Há um encaixe com resposta tátil em 100%.
-* "Resetar Todos" devolve todos os aplicativos para 100% e remove a interceptação.
-* Volumes e mutes são lembrados por aplicativo entre execuções.
-* "Iniciar no Login" registra o app como item de login.
+* Click the sliders icon in the menu bar.
+* The header shows the current output device, the master volume and the master mute.
+* Every app with an open audio session gets a row with mute, slider and percentage. The waveform icon marks apps that are playing right now.
+* The slider goes up to 150%. It snaps to 100% with haptic feedback.
+* "Reset All" sets every app back to 100% and removes the taps.
+* Volume and mute are remembered per app across launches.
+* "Launch at Login" registers the app as a login item.
 
-## Como funciona
+## How it works
 
-* Para cada aplicativo com volume diferente de 100% (ou mutado), o Fader cria um Process Tap privado com `muteBehavior = .mutedWhenTapped`, que silencia o fluxo original e entrega o áudio para o Fader.
-* Um dispositivo agregado privado junta o tap com o dispositivo de saída padrão. Um `AudioDeviceIOProc` copia o áudio do tap para a saída aplicando o ganho.
-* O callback de áudio não aloca memória, não usa locks e não toca em objetos Swift ou Objective C. Ganho e mute chegam por valores atômicos (`Synchronization.Atomic`).
-* A curva de volume é quadrática até 100% e linear de 100% a 150%. Acima de 100% entra um soft clip com `tanhf`. O ganho é interpolado amostra a amostra para evitar estalos.
-* Processos auxiliares (Chrome, Electron, WebKit) são agrupados no aplicativo pai, então cada app aparece uma única vez.
-* Em 100% e sem mute não existe tap: o áudio do aplicativo passa intocado.
+* For each app whose volume is not 100% (or that is muted), Fader creates a private Process Tap with `muteBehavior = .mutedWhenTapped`, which silences the original stream and hands the audio to Fader.
+* A private aggregate device combines the tap with the default output device. An `AudioDeviceIOProc` copies the tapped audio to the output while applying the gain.
+* The audio callback does not allocate memory, take locks or touch Swift or Objective C objects. Gain and mute arrive through atomics (`Synchronization.Atomic`).
+* The volume curve is quadratic up to 100% and linear from 100% to 150%. Above 100% a `tanhf` soft clipper kicks in. Gain is interpolated sample by sample to avoid clicks.
+* Helper processes (Chrome, Electron, WebKit) are grouped under their parent app, so each app shows up once.
+* At 100% and unmuted there is no tap at all: the app audio passes through untouched.
 
-## Compilar
+## Build
 
-Precisa do Xcode instalado (Swift 6).
+Requires Xcode (Swift 6).
 
 ```bash
-./build_app.sh      # gera build/Fader.app assinado ad hoc
-./package_dmg.sh    # gera build/Fader-<versão>.dmg
-swift test          # testes do processamento de áudio
-./scripts/make_icon.sh   # regenera Resources/Fader.icns
+./build_app.sh           # builds build/Fader.app, ad hoc signed
+./package_dmg.sh         # builds build/Fader-<version>.dmg
+swift test               # audio processing tests
+./scripts/make_icon.sh   # regenerates Resources/Fader.icns
 ```
 
-## Limitações conhecidas
+## Known limitations
 
-* O primeiro ajuste de um aplicativo leva de 1,5 a 2 segundos para fazer efeito, tempo que o macOS gasta inicializando o dispositivo agregado. O mesmo vale ao trocar o dispositivo de saída.
-* Sem a permissão de captura de áudio, um aplicativo com volume alterado fica mudo. "Resetar Todos" desfaz.
-* Aplicativos em 100% e sem mute não são interceptados.
+* The first adjustment of an app takes 1.5 to 2 seconds to take effect, which is the time macOS spends initializing the aggregate device. The same applies when the output device changes.
+* Without the audio capture permission, an app with a changed volume goes silent. "Reset All" undoes it.
+* Apps at 100% and unmuted are not tapped.
 
-## Diagnóstico
+## Diagnostics
 
 ```bash
 /usr/bin/log show --last 5m --predicate 'subsystem == "com.local.fader"'

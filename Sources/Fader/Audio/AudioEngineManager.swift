@@ -24,7 +24,7 @@ struct AudioApp: Identifiable {
 @Observable
 final class AudioEngineManager {
     private(set) var apps: [AudioApp] = []
-    private(set) var outputDeviceName = "Nenhum dispositivo de saída"
+    private(set) var outputDeviceName = "No output device"
     private(set) var outputDeviceSymbol = "speaker.slash"
     private(set) var masterVolume: Float = 0
     private(set) var isMasterMuted = false
@@ -143,7 +143,7 @@ final class AudioEngineManager {
         let status = AudioObjectAddPropertyListenerBlock(objectID, &address, DispatchQueue.main, block)
         if status != noErr {
             coreAudioLog.error(
-                "AddPropertyListenerBlock \(fourCharacterCode(selector), privacy: .public) falhou no objeto \(objectID): \(describeStatus(status), privacy: .public)"
+                "AddPropertyListenerBlock \(fourCharacterCode(selector), privacy: .public) failed on object \(objectID): \(describeStatus(status), privacy: .public)"
             )
         }
     }
@@ -213,9 +213,9 @@ final class AudioEngineManager {
         }
         refreshed.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         if refreshed.map(\.id) != apps.map(\.id) {
-            let names = refreshed.map { $0.isPlaying ? "\($0.name) (tocando)" : $0.name }.joined(separator: ", ")
+            let names = refreshed.map { $0.isPlaying ? "\($0.name) (playing)" : $0.name }.joined(separator: ", ")
             coreAudioLog.notice(
-                "Aplicativos com sessão de áudio: [\(names, privacy: .public)] de \(objectIDs.count) processos de áudio"
+                "Apps with an audio session: [\(names, privacy: .public)] out of \(objectIDs.count) audio processes"
             )
         }
         apps = refreshed
@@ -342,11 +342,11 @@ final class AudioEngineManager {
                 taps[app.ownerPID] = tap
                 let elapsed = clock.now - started
                 coreAudioLog.notice(
-                    "Tap criado para \(app.name, privacy: .public) (pid \(app.ownerPID)) com \(app.processObjectIDs.count) processos em \(String(describing: elapsed), privacy: .public)"
+                    "Tap created for \(app.name, privacy: .public) (pid \(app.ownerPID)) with \(app.processObjectIDs.count) processes in \(String(describing: elapsed), privacy: .public)"
                 )
             } catch {
                 coreAudioLog.error(
-                    "Não foi possível iniciar o tap de \(app.name, privacy: .public) (pid \(app.ownerPID)): \(String(describing: error), privacy: .public)"
+                    "Could not start the tap for \(app.name, privacy: .public) (pid \(app.ownerPID)): \(String(describing: error), privacy: .public)"
                 )
             }
         }
@@ -376,7 +376,7 @@ final class AudioEngineManager {
         syncTaps()
         let elapsed = clock.now - started
         coreAudioLog.notice(
-            "Troca de saída para \(self.outputDeviceName, privacy: .public) preparada na thread principal em \(String(describing: elapsed), privacy: .public) com \(self.taps.count) taps"
+            "Output switched to \(self.outputDeviceName, privacy: .public), main thread work took \(String(describing: elapsed), privacy: .public) for \(self.taps.count) taps"
         )
     }
 
@@ -387,14 +387,14 @@ final class AudioEngineManager {
         outputDeviceID = resolved ?? .unknown
 
         guard outputDeviceID != .unknown else {
-            outputDeviceName = "Nenhum dispositivo de saída"
+            outputDeviceName = "No output device"
             outputDeviceSymbol = "speaker.slash"
             isMasterVolumeAvailable = false
             isMasterMuteAvailable = false
             return
         }
 
-        outputDeviceName = outputDeviceID.getStringProperty(selector: kAudioObjectPropertyName) ?? "Saída de áudio"
+        outputDeviceName = outputDeviceID.getStringProperty(selector: kAudioObjectPropertyName) ?? "Audio output"
         outputDeviceSymbol = symbolName(forDevice: outputDeviceID, name: outputDeviceName)
         observeOutputDevice(outputDeviceID)
         refreshMasterState()
