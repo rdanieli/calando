@@ -17,14 +17,10 @@ Fader adjusts the volume (0% to 150%) and mute state of each app in real time. I
 
 1. Download the latest `Fader-<version>.dmg` from the [Releases](../../releases) page.
 2. Open the DMG and drag `Fader.app` into the Applications folder.
-3. The app is signed locally (ad hoc) and is not notarized by Apple, so Gatekeeper blocks the first launch. Allow it with:
+3. Open Fader. It lives only in the menu bar, with no Dock icon.
+4. The first time you move a slider, macOS asks for the system audio capture permission. Accept it: without it the controlled app goes silent.
 
-   ```bash
-   xattr -dr com.apple.quarantine /Applications/Fader.app
-   ```
-
-4. Open Fader. It lives only in the menu bar, with no Dock icon.
-5. The first time you move a slider, macOS asks for the system audio capture permission. Accept it: without it the controlled app goes silent.
+Releases from 1.0.2 onward are signed with a Developer ID and notarized by Apple, so they open without a Gatekeeper warning.
 
 ## Usage
 
@@ -55,6 +51,17 @@ Requires Xcode (Swift 6).
 swift test               # audio processing tests
 ./scripts/make_icon.sh   # regenerates Resources/Fader.icns
 ```
+
+### Signed and notarized builds
+
+By default the app is signed ad hoc, which is enough to run on the machine that built it. To produce a DMG that opens on other Macs without a Gatekeeper warning, sign with a Developer ID Application identity and notarize:
+
+```bash
+xcrun notarytool store-credentials fader-notary --apple-id <apple id> --team-id <team id>
+SIGN_IDENTITY="<Developer ID Application identity>" NOTARY_PROFILE=fader-notary ./package_dmg.sh
+```
+
+An ad hoc build copied to another Mac is blocked on first launch. Allow it once with `xattr -dr com.apple.quarantine /Applications/Fader.app`.
 
 ## Known limitations
 
