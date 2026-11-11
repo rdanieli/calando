@@ -65,16 +65,16 @@ context.drawRadialGradient(
 )
 context.restoreGState()
 
-struct FaderGlyph {
+struct CalandoGlyph {
     let centerX: CGFloat
     let level: CGFloat
     let accent: CGColor
 }
 
 let glyphs = [
-    FaderGlyph(centerX: 342, level: 0.74, accent: color(120, 235, 255)),
-    FaderGlyph(centerX: 512, level: 0.34, accent: color(255, 255, 255)),
-    FaderGlyph(centerX: 682, level: 0.58, accent: color(255, 184, 92)),
+    CalandoGlyph(centerX: 342, level: 0.74, accent: color(120, 235, 255)),
+    CalandoGlyph(centerX: 512, level: 0.34, accent: color(255, 255, 255)),
+    CalandoGlyph(centerX: 682, level: 0.58, accent: color(255, 184, 92)),
 ]
 
 let trackBottom: CGFloat = 268

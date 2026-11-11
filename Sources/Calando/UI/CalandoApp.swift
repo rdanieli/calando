@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 @main
-struct FaderApp: App {
+struct CalandoApp: App {
     @State private var engine = AudioEngineManager()
 
     init() {

@@ -2,7 +2,7 @@ import CoreAudio
 import Synchronization
 import Testing
 
-@testable import Fader
+@testable import Calando
 
 private final class RenderHarness {
     let gainBits = UnsafeMutablePointer<Atomic<UInt32>>.allocate(capacity: 1)
@@ -80,7 +80,7 @@ private final class RenderHarness {
         }
 
         var timestamp = AudioTimeStamp()
-        let status = faderRenderProc(
+        let status = calandoRenderProc(
             0,
             &timestamp,
             inputList.unsafePointer,

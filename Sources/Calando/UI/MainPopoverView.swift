@@ -147,7 +147,7 @@ private struct CaptureWarningView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 14))
                 .foregroundStyle(.yellow)
-            Text("Fader is not receiving audio. Allow it under System Audio Recording, or the controlled apps stay silent.")
+            Text("Calando is not receiving audio. Allow it under System Audio Recording, or the controlled apps stay silent.")
                 .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -182,7 +182,7 @@ private struct EmptyStateView: View {
 private struct FooterView: View {
     @State private var launchesAtLogin = SMAppService.mainApp.status == .enabled
 
-    private static let log = Logger(subsystem: "com.local.fader", category: "LoginItem")
+    private static let log = Logger(subsystem: "io.github.rdanieli.calando", category: "LoginItem")
 
     var body: some View {
         HStack {

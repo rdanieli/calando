@@ -2,17 +2,17 @@
 import PackageDescription
 
 let package = Package(
-    name: "Fader",
+    name: "Calando",
     platforms: [.macOS(.v15)],
     targets: [
         .executableTarget(
-            name: "Fader",
-            path: "Sources/Fader"
+            name: "Calando",
+            path: "Sources/Calando"
         ),
         .testTarget(
-            name: "FaderTests",
-            dependencies: ["Fader"],
-            path: "Tests/FaderTests"
+            name: "CalandoTests",
+            dependencies: ["Calando"],
+            path: "Tests/CalandoTests"
         ),
     ]
 )

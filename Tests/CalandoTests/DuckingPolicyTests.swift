@@ -1,6 +1,6 @@
 import Testing
 
-@testable import Fader
+@testable import Calando
 
 @Test func duckingIsActiveOnlyWhileAPriorityAppPlays() {
     #expect(DuckingPolicy.isDuckingActive([]) == false)

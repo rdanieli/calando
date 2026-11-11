@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import Testing
 
-@testable import Fader
+@testable import Calando
 
 @MainActor
 private func demoApp(
@@ -31,7 +31,7 @@ private func demoApp(
 
 @MainActor
 @Test func renderPopoverScreenshotWhenRequested() throws {
-    guard let path = ProcessInfo.processInfo.environment["FADER_SCREENSHOT_PATH"] else { return }
+    guard let path = ProcessInfo.processInfo.environment["CALANDO_SCREENSHOT_PATH"] else { return }
 
     let engine = AudioEngineManager(
         previewApps: [

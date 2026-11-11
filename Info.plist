@@ -5,29 +5,29 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Fader</string>
+	<string>Calando</string>
 	<key>CFBundleExecutable</key>
-	<string>Fader</string>
+	<string>Calando</string>
 	<key>CFBundleIconFile</key>
-	<string>Fader</string>
+	<string>Calando</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.local.fader</string>
+	<string>io.github.rdanieli.calando</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Fader</string>
+	<string>Calando</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.1.0</string>
+	<string>1.2.0</string>
 	<key>CFBundleVersion</key>
-	<string>4</string>
+	<string>5</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>Fader taps the audio of your apps only to adjust the volume of each one locally, in real time. No audio is recorded, stored or sent off this Mac.</string>
+	<string>Calando taps the audio of your apps only to adjust the volume of each one locally, in real time. No audio is recorded, stored or sent off this Mac.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSPrincipalClass</key>

@@ -97,7 +97,7 @@ private func locateChannel(_ list: UnsafeMutableAudioBufferListPointer, _ channe
     return .empty
 }
 
-func faderRenderProc(
+func calandoRenderProc(
     _ device: AudioObjectID,
     _ now: UnsafePointer<AudioTimeStamp>,
     _ inputData: UnsafePointer<AudioBufferList>,
@@ -240,7 +240,7 @@ private final class TapIOSession: @unchecked Sendable {
         let clock = ContinuousClock()
         let began = clock.now
         var newProcID: AudioDeviceIOProcID?
-        var status = AudioDeviceCreateIOProcID(aggregateDeviceID, faderRenderProc, renderState, &newProcID)
+        var status = AudioDeviceCreateIOProcID(aggregateDeviceID, calandoRenderProc, renderState, &newProcID)
         guard status == noErr, let newProcID else {
             coreAudioLog.error("AudioDeviceCreateIOProcID failed for pid \(self.ownerPID): \(describeStatus(status), privacy: .public)")
             return
@@ -324,7 +324,7 @@ final class ProcessAudioTap {
         self.ownerPID = ownerPID
         self.processObjectIDs = processObjectIDs
         self.outputDeviceID = outputDeviceID
-        ioQueue = DispatchQueue(label: "com.local.fader.tap.\(ownerPID)", qos: .userInitiated)
+        ioQueue = DispatchQueue(label: "io.github.rdanieli.calando.tap.\(ownerPID)", qos: .userInitiated)
 
         let nominalRate: Float64? = outputDeviceID.getPropertyData(selector: kAudioDevicePropertyNominalSampleRate)
         let resolvedRate = nominalRate ?? 0
@@ -426,7 +426,7 @@ final class ProcessAudioTap {
         let description = CATapDescription(stereoMixdownOfProcesses: processObjectIDs)
         description.uuid = tapUUID
         description.muteBehavior = .mutedWhenTapped
-        description.name = "FaderTap-\(ownerPID)"
+        description.name = "CalandoTap-\(ownerPID)"
         description.isPrivate = true
 
         var newTapID = AudioObjectID.unknown
@@ -444,8 +444,8 @@ final class ProcessAudioTap {
         let tapUID = tapID.getStringProperty(selector: kAudioTapPropertyUID) ?? tapUUID.uuidString
 
         let description: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "FaderAgg-\(ownerPID)",
-            kAudioAggregateDeviceUIDKey: "com.local.fader.agg.\(ownerPID).\(UUID().uuidString)",
+            kAudioAggregateDeviceNameKey: "CalandoAgg-\(ownerPID)",
+            kAudioAggregateDeviceUIDKey: "io.github.rdanieli.calando.agg.\(ownerPID).\(UUID().uuidString)",
             kAudioAggregateDeviceIsPrivateKey: true,
             kAudioAggregateDeviceIsStackedKey: false,
             kAudioAggregateDeviceTapAutoStartKey: true,

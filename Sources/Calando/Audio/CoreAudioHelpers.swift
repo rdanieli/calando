@@ -2,7 +2,7 @@ import CoreAudio
 import Foundation
 import os
 
-let coreAudioLog = Logger(subsystem: "com.local.fader", category: "CoreAudio")
+let coreAudioLog = Logger(subsystem: "io.github.rdanieli.calando", category: "CoreAudio")
 
 func fourCharacterCode(_ value: UInt32) -> String {
     let bytes = [

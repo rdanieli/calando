@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-APP="build/Fader.app"
+APP="build/Calando.app"
 XCODE_DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
 
 if ! { swift package --version >/dev/null 2>&1; } 2>/dev/null && [ -d "$XCODE_DEVELOPER_DIR" ]; then
@@ -17,18 +17,18 @@ BIN_DIR="$(swift build -c release --arch arm64 --show-bin-path)"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-cp "$BIN_DIR/Fader" "$APP/Contents/MacOS/Fader"
+cp "$BIN_DIR/Calando" "$APP/Contents/MacOS/Calando"
 cp Info.plist "$APP/Contents/Info.plist"
-cp Resources/Fader.icns "$APP/Contents/Resources/Fader.icns"
+cp Resources/Calando.icns "$APP/Contents/Resources/Calando.icns"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 plutil -lint "$APP/Contents/Info.plist"
 
 SIGN_IDENTITY="${SIGN_IDENTITY:--}"
 if [ "$SIGN_IDENTITY" = "-" ]; then
-    codesign --force --deep --sign - --entitlements Fader.entitlements "$APP"
+    codesign --force --deep --sign - --entitlements Calando.entitlements "$APP"
 else
-    codesign --force --deep --options runtime --timestamp --sign "$SIGN_IDENTITY" --entitlements Fader.entitlements "$APP"
+    codesign --force --deep --options runtime --timestamp --sign "$SIGN_IDENTITY" --entitlements Calando.entitlements "$APP"
 fi
 codesign --verify --deep --strict --verbose=2 "$APP"
 

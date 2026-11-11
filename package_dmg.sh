@@ -8,14 +8,14 @@ cd "$ROOT"
 
 VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Info.plist)"
 STAGING="build/dmg"
-DMG="build/Fader-$VERSION.dmg"
+DMG="build/Calando-$VERSION.dmg"
 
 rm -rf "$STAGING" "$DMG"
 mkdir -p "$STAGING"
-cp -R build/Fader.app "$STAGING/Fader.app"
+cp -R build/Calando.app "$STAGING/Calando.app"
 ln -s /Applications "$STAGING/Applications"
 
-diskutil image create from --format UDZO --volumeName "Fader" "$STAGING" "$DMG"
+diskutil image create from --format UDZO --volumeName "Calando" "$STAGING" "$DMG"
 
 if [ -n "${NOTARY_PROFILE:-}" ]; then
     if [ -z "${SIGN_IDENTITY:-}" ] || [ "$SIGN_IDENTITY" = "-" ]; then

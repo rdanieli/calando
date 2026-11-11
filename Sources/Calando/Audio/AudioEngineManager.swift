@@ -52,11 +52,11 @@ final class AudioEngineManager {
     private let ownPID = ProcessInfo.processInfo.processIdentifier
     private let isPreview: Bool
 
-    private static let volumesKey = "com.local.fader.appVolumes"
-    private static let mutesKey = "com.local.fader.appMutes"
-    private static let rolesKey = "com.local.fader.appRoles"
-    private static let duckLevelKey = "com.local.fader.duckLevel"
-    private static let captureVerifiedKey = "com.local.fader.captureVerified"
+    private static let volumesKey = "io.github.rdanieli.calando.appVolumes"
+    private static let mutesKey = "io.github.rdanieli.calando.appMutes"
+    private static let rolesKey = "io.github.rdanieli.calando.appRoles"
+    private static let duckLevelKey = "io.github.rdanieli.calando.duckLevel"
+    private static let captureVerifiedKey = "io.github.rdanieli.calando.captureVerified"
 
     private static let duckAttackSeconds = 0.25
     private static let duckReleaseSeconds = 0.6
@@ -66,6 +66,7 @@ final class AudioEngineManager {
 
     init() {
         isPreview = false
+        SettingsMigration.run(defaults: defaults)
         if let storedLevel = defaults.object(forKey: Self.duckLevelKey) as? Double {
             duckLevel = min(max(Float(storedLevel), 0), 1)
         }
@@ -590,7 +591,7 @@ final class AudioEngineManager {
             showsCaptureWarning = false
             captureMonitorTask?.cancel()
             captureMonitorTask = nil
-            coreAudioLog.notice("Audio capture verified: tapped audio is reaching Fader")
+            coreAudioLog.notice("Audio capture verified: tapped audio is reaching Calando")
             syncTaps()
             return
         }
