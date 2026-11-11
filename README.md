@@ -7,6 +7,11 @@
 <p align="center">Per app volume control in the macOS menu bar, with automatic ducking.</p>
 
 <p align="center">
+  <a href="../../releases/latest">Download</a> ·
+  <a href="https://github.com/sponsors/rdanieli">Sponsor</a>
+</p>
+
+<p align="center">
   <img src="docs/screenshot.png" width="340" alt="Fader popover showing per app sliders and ducking roles">
 </p>
 
@@ -105,6 +110,10 @@ An ad hoc build copied to another Mac is blocked on first launch. Allow it once 
 ```bash
 /usr/bin/log show --last 5m --predicate 'subsystem == "com.local.fader"'
 ```
+
+## Support
+
+Fader is free and open source. If it saves you from reaching for the volume keys in every meeting, you can support its development through [GitHub Sponsors](https://github.com/sponsors/rdanieli).
 
 ## License
 
