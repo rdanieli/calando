@@ -15,12 +15,18 @@ struct MainPopoverView: View {
     private static let rowHeight: CGFloat = 56
     private static let listPadding: CGFloat = 6
     private static let emptyStateHeight: CGFloat = 104
+    private static let warningHeight: CGFloat = 54
 
     var body: some View {
         VStack(spacing: 0) {
             HeaderView(engine: engine)
                 .frame(height: Self.headerHeight)
             separator
+            if engine.showsCaptureWarning {
+                CaptureWarningView(engine: engine)
+                    .frame(height: Self.warningHeight)
+                separator
+            }
             Group {
                 if engine.apps.isEmpty {
                     EmptyStateView()
@@ -44,7 +50,10 @@ struct MainPopoverView: View {
     }
 
     private var popoverHeight: CGFloat {
-        let chrome = Self.headerHeight + Self.footerHeight + Self.dividerHeight * 2
+        var chrome = Self.headerHeight + Self.footerHeight + Self.dividerHeight * 2
+        if engine.showsCaptureWarning {
+            chrome += Self.warningHeight + Self.dividerHeight
+        }
         let content: CGFloat
         if engine.apps.isEmpty {
             content = Self.emptyStateHeight
@@ -127,6 +136,28 @@ private struct HeaderView: View {
             get: { engine.masterVolume },
             set: { engine.setMasterVolume($0) }
         )
+    }
+}
+
+private struct CaptureWarningView: View {
+    let engine: AudioEngineManager
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 14))
+                .foregroundStyle(.yellow)
+            Text("Fader is not receiving audio. Allow it under System Audio Recording, or the controlled apps stay silent.")
+                .font(.system(size: 10.5))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 4)
+            Button("Open Settings") {
+                engine.openCaptureSettings()
+            }
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
     }
 }
 

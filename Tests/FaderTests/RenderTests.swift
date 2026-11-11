@@ -7,15 +7,28 @@ import Testing
 private final class RenderHarness {
     let gainBits = UnsafeMutablePointer<Atomic<UInt32>>.allocate(capacity: 1)
     let muted = UnsafeMutablePointer<Atomic<Bool>>.allocate(capacity: 1)
+    let slewFrames = UnsafeMutablePointer<Atomic<UInt32>>.allocate(capacity: 1)
+    let sawSignal = UnsafeMutablePointer<Atomic<Bool>>.allocate(capacity: 1)
     let state = UnsafeMutablePointer<TapRenderState>.allocate(capacity: 1)
 
-    init(currentGain: Float, targetGain: Float, isMuted: Bool = false, left: Int = 0, right: Int = 1) {
+    init(
+        currentGain: Float,
+        targetGain: Float,
+        isMuted: Bool = false,
+        slew: UInt32 = 512,
+        left: Int = 0,
+        right: Int = 1
+    ) {
         gainBits.initialize(to: Atomic<UInt32>(targetGain.bitPattern))
         muted.initialize(to: Atomic<Bool>(isMuted))
+        slewFrames.initialize(to: Atomic<UInt32>(slew))
+        sawSignal.initialize(to: Atomic<Bool>(false))
         state.initialize(
             to: TapRenderState(
                 targetGainBits: gainBits,
                 isMuted: muted,
+                slewFrames: slewFrames,
+                sawSignal: sawSignal,
                 currentGain: currentGain,
                 leftOutputChannel: left,
                 rightOutputChannel: right
@@ -30,6 +43,10 @@ private final class RenderHarness {
         gainBits.deallocate()
         muted.deinitialize(count: 1)
         muted.deallocate()
+        slewFrames.deinitialize(count: 1)
+        slewFrames.deallocate()
+        sawSignal.deinitialize(count: 1)
+        sawSignal.deallocate()
     }
 
     func render(input: [[Float32]], inputChannelsPerBuffer: Int, outputBuffers: Int, outputChannelsPerBuffer: Int, frames: Int) -> [[Float32]] {
@@ -139,7 +156,7 @@ private final class RenderHarness {
 }
 
 @Test func muteFadesToSilenceInsteadOfCuttingAbruptly() {
-    let harness = RenderHarness(currentGain: 1, targetGain: 1, isMuted: true)
+    let harness = RenderHarness(currentGain: 1, targetGain: 1, isMuted: true, slew: 256)
     let frames = 256
     let input = [Float32](repeating: 0.8, count: frames * 2)
     let first = harness.render(input: [input], inputChannelsPerBuffer: 2, outputBuffers: 1, outputChannelsPerBuffer: 2, frames: frames)[0]
@@ -170,4 +187,28 @@ private final class RenderHarness {
     let harness = RenderHarness(currentGain: 1, targetGain: 1)
     let output = harness.render(input: [[]], inputChannelsPerBuffer: 2, outputBuffers: 1, outputChannelsPerBuffer: 2, frames: 4)
     #expect(output == [[0, 0, 0, 0, 0, 0, 0, 0]])
+}
+
+@Test func slowSlewSpreadsTheFadeAcrossSeveralBuffers() {
+    let harness = RenderHarness(currentGain: 1, targetGain: 0.25, slew: 1024)
+    let frames = 256
+    let input = [Float32](repeating: 1, count: frames * 2)
+    let first = harness.render(input: [input], inputChannelsPerBuffer: 2, outputBuffers: 1, outputChannelsPerBuffer: 2, frames: frames)[0]
+    #expect(first[first.count - 1] == 0.75)
+    #expect(harness.state.pointee.currentGain == 0.75)
+    _ = harness.render(input: [input], inputChannelsPerBuffer: 2, outputBuffers: 1, outputChannelsPerBuffer: 2, frames: frames)
+    let third = harness.render(input: [input], inputChannelsPerBuffer: 2, outputBuffers: 1, outputChannelsPerBuffer: 2, frames: frames)[0]
+    #expect(third[third.count - 1] == 0.25)
+    let fourth = harness.render(input: [input], inputChannelsPerBuffer: 2, outputBuffers: 1, outputChannelsPerBuffer: 2, frames: frames)[0]
+    #expect(fourth.allSatisfy { $0 == 0.25 })
+}
+
+@Test func signalFlagIsRaisedOnlyByAudibleInput() {
+    let silent = RenderHarness(currentGain: 1, targetGain: 1)
+    _ = silent.render(input: [[0, 0, 0, 0]], inputChannelsPerBuffer: 2, outputBuffers: 1, outputChannelsPerBuffer: 2, frames: 2)
+    #expect(silent.sawSignal.pointee.load(ordering: .relaxed) == false)
+
+    let audible = RenderHarness(currentGain: 0, targetGain: 0, isMuted: true)
+    _ = audible.render(input: [[0, 0, 0.3, -0.3]], inputChannelsPerBuffer: 2, outputBuffers: 1, outputChannelsPerBuffer: 2, frames: 2)
+    #expect(audible.sawSignal.pointee.load(ordering: .relaxed) == true)
 }

@@ -18,6 +18,8 @@ enum VolumeCurve {
 struct TapRenderState {
     let targetGainBits: UnsafeMutablePointer<Atomic<UInt32>>
     let isMuted: UnsafeMutablePointer<Atomic<Bool>>
+    let slewFrames: UnsafeMutablePointer<Atomic<UInt32>>
+    let sawSignal: UnsafeMutablePointer<Atomic<Bool>>
     var currentGain: Float32
     let leftOutputChannel: Int
     let rightOutputChannel: Int
@@ -49,6 +51,18 @@ func softClip(_ sample: Float32) -> Float32 {
 private func shapeSample(_ sample: Float32, gain: Float32) -> Float32 {
     let scaled = sample * gain
     return gain > 1.0 ? softClip(scaled) : scaled
+}
+
+@inline(__always)
+private func approach(_ current: Float32, _ target: Float32, _ maximumStep: Float32) -> Float32 {
+    let delta = target - current
+    if delta > maximumStep {
+        return current + maximumStep
+    }
+    if delta < -maximumStep {
+        return current - maximumStep
+    }
+    return target
 }
 
 @inline(__always)
@@ -134,29 +148,40 @@ func faderRenderProc(
     let frames = min(min(inputLeft.frames, inputRight.frames), min(outputLeft.frames, outputRight.frames))
     guard frames > 0 else { return noErr }
 
-    let step = (targetGain - startGain) / Float32(frames)
+    let slewFrames = max(state.pointee.slewFrames.pointee.load(ordering: .relaxed), 1)
+    let maximumStep = 1.0 / Float32(slewFrames)
     let inLeftStride = inputLeft.stride
     let inRightStride = inputRight.stride
     let outLeftStride = outputLeft.stride
     let outRightStride = outputRight.stride
-    let lastFrame = frames - 1
     var gain = startGain
+    var energy: Float32 = 0
     var frame = 0
 
     if leftIndex == rightIndex {
         while frame < frames {
-            gain = frame == lastFrame ? targetGain : gain + step
-            let mixed = (inLeft[frame * inLeftStride] + inRight[frame * inRightStride]) * 0.5
-            outLeft[frame * outLeftStride] = shapeSample(mixed, gain: gain)
+            gain = approach(gain, targetGain, maximumStep)
+            let left = inLeft[frame * inLeftStride]
+            let right = inRight[frame * inRightStride]
+            energy += abs(left) + abs(right)
+            outLeft[frame * outLeftStride] = shapeSample((left + right) * 0.5, gain: gain)
             frame += 1
         }
     } else {
         while frame < frames {
-            gain = frame == lastFrame ? targetGain : gain + step
-            outLeft[frame * outLeftStride] = shapeSample(inLeft[frame * inLeftStride], gain: gain)
-            outRight[frame * outRightStride] = shapeSample(inRight[frame * inRightStride], gain: gain)
+            gain = approach(gain, targetGain, maximumStep)
+            let left = inLeft[frame * inLeftStride]
+            let right = inRight[frame * inRightStride]
+            energy += abs(left) + abs(right)
+            outLeft[frame * outLeftStride] = shapeSample(left, gain: gain)
+            outRight[frame * outRightStride] = shapeSample(right, gain: gain)
             frame += 1
         }
+    }
+
+    state.pointee.currentGain = gain
+    if energy > 0 {
+        state.pointee.sawSignal.pointee.store(true, ordering: .relaxed)
     }
 
     return noErr
@@ -190,6 +215,8 @@ private final class TapIOSession: @unchecked Sendable {
     let renderState: UnsafeMutablePointer<TapRenderState>
     let targetGainBits: UnsafeMutablePointer<Atomic<UInt32>>
     let mutedFlag: UnsafeMutablePointer<Atomic<Bool>>
+    let slewFrames: UnsafeMutablePointer<Atomic<UInt32>>
+    let sawSignal: UnsafeMutablePointer<Atomic<Bool>>
     private var ioProcID: AudioDeviceIOProcID?
     private var isRunning = false
 
@@ -197,12 +224,16 @@ private final class TapIOSession: @unchecked Sendable {
         ownerPID: pid_t,
         renderState: UnsafeMutablePointer<TapRenderState>,
         targetGainBits: UnsafeMutablePointer<Atomic<UInt32>>,
-        mutedFlag: UnsafeMutablePointer<Atomic<Bool>>
+        mutedFlag: UnsafeMutablePointer<Atomic<Bool>>,
+        slewFrames: UnsafeMutablePointer<Atomic<UInt32>>,
+        sawSignal: UnsafeMutablePointer<Atomic<Bool>>
     ) {
         self.ownerPID = ownerPID
         self.renderState = renderState
         self.targetGainBits = targetGainBits
         self.mutedFlag = mutedFlag
+        self.slewFrames = slewFrames
+        self.sawSignal = sawSignal
     }
 
     func startIO(on aggregateDeviceID: AudioObjectID) {
@@ -249,6 +280,10 @@ private final class TapIOSession: @unchecked Sendable {
         targetGainBits.deallocate()
         mutedFlag.deinitialize(count: 1)
         mutedFlag.deallocate()
+        slewFrames.deinitialize(count: 1)
+        slewFrames.deallocate()
+        sawSignal.deinitialize(count: 1)
+        sawSignal.deallocate()
     }
 
     private func report(_ status: OSStatus, _ operation: String) {
@@ -262,22 +297,28 @@ final class ProcessAudioTap {
     let ownerPID: pid_t
     let processObjectIDs: [AudioObjectID]
     let outputDeviceID: AudioObjectID
+    let createdAt = ContinuousClock.now
 
     private var tapID = AudioObjectID.unknown
     private var aggregateDeviceID = AudioObjectID.unknown
     private var isReleased = false
     private let tapUUID = UUID()
+    private let sampleRate: Double
 
     private let targetGainBits: UnsafeMutablePointer<Atomic<UInt32>>
     private let mutedFlag: UnsafeMutablePointer<Atomic<Bool>>
+    private let slewFrames: UnsafeMutablePointer<Atomic<UInt32>>
+    private let sawSignal: UnsafeMutablePointer<Atomic<Bool>>
     private let session: TapIOSession
     private let ioQueue: DispatchQueue
+
+    static let quickSlewSeconds = 0.012
 
     init(
         ownerPID: pid_t,
         processObjectIDs: [AudioObjectID],
         outputDeviceID: AudioObjectID,
-        sliderValue: Float,
+        linearGain: Float,
         isMuted: Bool
     ) {
         self.ownerPID = ownerPID
@@ -285,11 +326,18 @@ final class ProcessAudioTap {
         self.outputDeviceID = outputDeviceID
         ioQueue = DispatchQueue(label: "com.local.fader.tap.\(ownerPID)", qos: .userInitiated)
 
-        let gain = VolumeCurve.linearGain(forSliderValue: sliderValue)
+        let nominalRate: Float64? = outputDeviceID.getPropertyData(selector: kAudioDevicePropertyNominalSampleRate)
+        let resolvedRate = nominalRate ?? 0
+        sampleRate = resolvedRate > 0 ? resolvedRate : 48_000
+
         targetGainBits = .allocate(capacity: 1)
-        targetGainBits.initialize(to: Atomic<UInt32>(gain.bitPattern))
+        targetGainBits.initialize(to: Atomic<UInt32>(linearGain.bitPattern))
         mutedFlag = .allocate(capacity: 1)
         mutedFlag.initialize(to: Atomic<Bool>(isMuted))
+        slewFrames = .allocate(capacity: 1)
+        slewFrames.initialize(to: Atomic<UInt32>(UInt32(max(sampleRate * Self.quickSlewSeconds, 1))))
+        sawSignal = .allocate(capacity: 1)
+        sawSignal.initialize(to: Atomic<Bool>(false))
 
         let stereoChannels: [UInt32] = outputDeviceID.getPropertyArray(
             selector: kAudioDevicePropertyPreferredChannelsForStereo,
@@ -303,7 +351,9 @@ final class ProcessAudioTap {
             to: TapRenderState(
                 targetGainBits: targetGainBits,
                 isMuted: mutedFlag,
-                currentGain: isMuted ? 0.0 : gain,
+                slewFrames: slewFrames,
+                sawSignal: sawSignal,
+                currentGain: isMuted ? 0.0 : linearGain,
                 leftOutputChannel: left,
                 rightOutputChannel: right
             )
@@ -312,14 +362,21 @@ final class ProcessAudioTap {
             ownerPID: ownerPID,
             renderState: renderState,
             targetGainBits: targetGainBits,
-            mutedFlag: mutedFlag
+            mutedFlag: mutedFlag,
+            slewFrames: slewFrames,
+            sawSignal: sawSignal
         )
     }
 
-    func setVolume(sliderValue: Float) {
+    var hasSeenSignal: Bool {
+        guard !isReleased else { return false }
+        return sawSignal.pointee.load(ordering: .relaxed)
+    }
+
+    func setGain(_ linearGain: Float, slewSeconds: Double) {
         guard !isReleased else { return }
-        let gain = VolumeCurve.linearGain(forSliderValue: sliderValue)
-        targetGainBits.pointee.store(gain.bitPattern, ordering: .relaxed)
+        slewFrames.pointee.store(UInt32(max(sampleRate * slewSeconds, 1)), ordering: .relaxed)
+        targetGainBits.pointee.store(linearGain.bitPattern, ordering: .relaxed)
     }
 
     func setMuted(_ muted: Bool) {
