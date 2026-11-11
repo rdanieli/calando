@@ -32,8 +32,11 @@ Fader adjusts the volume (0% to 150%) and mute state of each app in real time, a
 With Homebrew:
 
 ```bash
+brew tap rdanieli/tap
 brew install --cask rdanieli/tap/fader
 ```
+
+Recent Homebrew versions refuse casks from third party taps until you trust them. If the install is refused, run `brew trust rdanieli/tap` and repeat it.
 
 Or manually:
 
