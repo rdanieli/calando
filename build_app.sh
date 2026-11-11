@@ -24,7 +24,12 @@ printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 plutil -lint "$APP/Contents/Info.plist"
 
-codesign --force --deep --sign - --entitlements Fader.entitlements "$APP"
+SIGN_IDENTITY="${SIGN_IDENTITY:--}"
+if [ "$SIGN_IDENTITY" = "-" ]; then
+    codesign --force --deep --sign - --entitlements Fader.entitlements "$APP"
+else
+    codesign --force --deep --options runtime --timestamp --sign "$SIGN_IDENTITY" --entitlements Fader.entitlements "$APP"
+fi
 codesign --verify --deep --strict --verbose=2 "$APP"
 
 echo "Bundle ready: $ROOT/$APP"

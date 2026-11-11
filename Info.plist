@@ -2,35 +2,35 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleDevelopmentRegion</key>
-    <string>en</string>
-    <key>CFBundleDisplayName</key>
-    <string>Fader</string>
-    <key>CFBundleExecutable</key>
-    <string>Fader</string>
-    <key>CFBundleIconFile</key>
-    <string>Fader</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.local.fader</string>
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-    <key>CFBundleName</key>
-    <string>Fader</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0.1</string>
-    <key>CFBundleVersion</key>
-    <string>2</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>15.0</string>
-    <key>LSUIElement</key>
-    <true/>
-    <key>NSAudioCaptureUsageDescription</key>
-    <string>Fader taps the audio of your apps only to adjust the volume of each one locally, in real time. No audio is recorded, stored or sent off this Mac.</string>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-    <key>NSPrincipalClass</key>
-    <string>NSApplication</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Fader</string>
+	<key>CFBundleExecutable</key>
+	<string>Fader</string>
+	<key>CFBundleIconFile</key>
+	<string>Fader</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.local.fader</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Fader</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.2</string>
+	<key>CFBundleVersion</key>
+	<string>3</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Fader taps the audio of your apps only to adjust the volume of each one locally, in real time. No audio is recorded, stored or sent off this Mac.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
 </dict>
 </plist>
