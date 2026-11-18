@@ -17,7 +17,8 @@ private final class RenderHarness {
         isMuted: Bool = false,
         slew: UInt32 = 512,
         left: Int = 0,
-        right: Int = 1
+        right: Int = 1,
+        capture: CaptureSink? = nil
     ) {
         gainBits.initialize(to: Atomic<UInt32>(targetGain.bitPattern))
         muted.initialize(to: Atomic<Bool>(isMuted))
@@ -31,7 +32,8 @@ private final class RenderHarness {
                 sawSignal: sawSignal,
                 currentGain: currentGain,
                 leftOutputChannel: left,
-                rightOutputChannel: right
+                rightOutputChannel: right,
+                capture: capture
             )
         )
     }
@@ -211,4 +213,56 @@ private final class RenderHarness {
     let audible = RenderHarness(currentGain: 0, targetGain: 0, isMuted: true)
     _ = audible.render(input: [[0, 0, 0.3, -0.3]], inputChannelsPerBuffer: 2, outputBuffers: 1, outputChannelsPerBuffer: 2, frames: 2)
     #expect(audible.sawSignal.pointee.load(ordering: .relaxed) == true)
+}
+
+@Test func mutedTapStillCapturesTheOriginalAudioAsMono() {
+    let ring = CaptureRing(capacity: 16)
+    defer { ring.release() }
+    ring.setEnabled(true)
+    let harness = RenderHarness(currentGain: 0, targetGain: 1, isMuted: true, capture: ring.sink)
+    let output = harness.render(
+        input: [[0.2, 0.4, 0.6, 0.8, -1.0, 0.0]],
+        inputChannelsPerBuffer: 2,
+        outputBuffers: 1,
+        outputChannelsPerBuffer: 2,
+        frames: 3
+    )
+    #expect(output[0].allSatisfy { $0 == 0 })
+    let captured = ring.drain()
+    #expect(captured.count == 3)
+    #expect(abs(captured[0] - 0.3) < 0.0001)
+    #expect(abs(captured[1] - 0.7) < 0.0001)
+    #expect(abs(captured[2] + 0.5) < 0.0001)
+    #expect(ring.drain().isEmpty)
+}
+
+@Test func captureStaysEmptyWhileDisabled() {
+    let ring = CaptureRing(capacity: 16)
+    defer { ring.release() }
+    let harness = RenderHarness(currentGain: 1, targetGain: 1, capture: ring.sink)
+    _ = harness.render(
+        input: [[0.5, 0.5, 0.5, 0.5]],
+        inputChannelsPerBuffer: 2,
+        outputBuffers: 1,
+        outputChannelsPerBuffer: 2,
+        frames: 2
+    )
+    #expect(ring.drain().isEmpty)
+}
+
+@Test func captureKeepsOnlyTheNewestAudioWhenTheReaderFallsBehind() {
+    let ring = CaptureRing(capacity: 4)
+    defer { ring.release() }
+    ring.setEnabled(true)
+    let harness = RenderHarness(currentGain: 1, targetGain: 1, capture: ring.sink)
+    let frames = 6
+    let stereo = (1...frames).flatMap { [Float32($0), Float32($0)] }
+    _ = harness.render(
+        input: [stereo],
+        inputChannelsPerBuffer: 2,
+        outputBuffers: 1,
+        outputChannelsPerBuffer: 2,
+        frames: frames
+    )
+    #expect(ring.drain() == [3, 4, 5, 6])
 }

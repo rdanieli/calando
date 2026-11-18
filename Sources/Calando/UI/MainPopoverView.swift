@@ -16,6 +16,7 @@ struct MainPopoverView: View {
     private static let listPadding: CGFloat = 6
     private static let emptyStateHeight: CGFloat = 104
     private static let warningHeight: CGFloat = 54
+    private static let nameAlertBarHeight: CGFloat = 38
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,6 +28,11 @@ struct MainPopoverView: View {
                     .frame(height: Self.warningHeight)
                 separator
             }
+            if let alert = engine.nameAlert.activeAlert {
+                NameAlertBanner(controller: engine.nameAlert, alert: alert)
+                    .frame(height: Self.warningHeight)
+                separator
+            }
             Group {
                 if engine.apps.isEmpty {
                     EmptyStateView()
@@ -35,6 +41,9 @@ struct MainPopoverView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            separator
+            NameAlertBar(controller: engine.nameAlert)
+                .frame(height: Self.nameAlertBarHeight)
             separator
             FooterView()
                 .frame(height: Self.footerHeight)
@@ -50,7 +59,10 @@ struct MainPopoverView: View {
     }
 
     private var popoverHeight: CGFloat {
-        var chrome = Self.headerHeight + Self.footerHeight + Self.dividerHeight * 2
+        var chrome = Self.headerHeight + Self.footerHeight + Self.nameAlertBarHeight + Self.dividerHeight * 3
+        if engine.nameAlert.activeAlert != nil {
+            chrome += Self.warningHeight + Self.dividerHeight
+        }
         if engine.showsCaptureWarning {
             chrome += Self.warningHeight + Self.dividerHeight
         }

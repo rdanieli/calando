@@ -21,6 +21,13 @@ struct AudioApp: Identifiable {
     }
 }
 
+struct NameAlertRestorePoint {
+    let appID: String
+    let volume: Float
+    let isMuted: Bool
+    let wasMasterMuted: Bool
+}
+
 @MainActor
 @Observable
 final class AudioEngineManager {
@@ -34,6 +41,7 @@ final class AudioEngineManager {
     private(set) var isDucking = false
     private(set) var duckLevel: Float = DuckingPolicy.defaultDuckLevel
     private(set) var showsCaptureWarning = false
+    let nameAlert: NameAlertController
 
     @ObservationIgnored private var taps: [pid_t: ProcessAudioTap] = [:]
     @ObservationIgnored private var outputDeviceID = AudioObjectID.unknown
@@ -47,6 +55,8 @@ final class AudioEngineManager {
     @ObservationIgnored private var duckReleaseTask: Task<Void, Never>?
     @ObservationIgnored private var prewarmReleaseTask: Task<Void, Never>?
     @ObservationIgnored private var captureMonitorTask: Task<Void, Never>?
+    @ObservationIgnored private var listeningAppID: String?
+    @ObservationIgnored private var nameAlertRestorePoint: NameAlertRestorePoint?
 
     private let defaults = UserDefaults.standard
     private let ownPID = ProcessInfo.processInfo.processIdentifier
@@ -66,6 +76,7 @@ final class AudioEngineManager {
 
     init() {
         isPreview = false
+        nameAlert = NameAlertController()
         SettingsMigration.run(defaults: defaults)
         if let storedLevel = defaults.object(forKey: Self.duckLevelKey) as? Double {
             duckLevel = min(max(Float(storedLevel), 0), 1)
@@ -86,6 +97,7 @@ final class AudioEngineManager {
             manager.handleDefaultOutputDeviceChange()
         }
         observeApplicationLifecycle()
+        connectNameAlert()
         refreshProcesses()
     }
 
@@ -97,6 +109,7 @@ final class AudioEngineManager {
         isDucking: Bool
     ) {
         isPreview = true
+        nameAlert = NameAlertController(isPreview: true)
         apps = previewApps
         self.outputDeviceName = outputDeviceName
         self.outputDeviceSymbol = outputDeviceSymbol
@@ -472,7 +485,10 @@ final class AudioEngineManager {
     }
 
     private func shouldTap(_ app: AudioApp) -> Bool {
-        DuckingPolicy.shouldTap(
+        if app.id == listeningAppID {
+            return true
+        }
+        return DuckingPolicy.shouldTap(
             isNeutral: app.isNeutral,
             isEngaged: engagedAppIDs.contains(app.id),
             role: app.role,
@@ -500,10 +516,13 @@ final class AudioEngineManager {
         } else if shouldTap(app) {
             syncTaps()
         }
+        refreshNameListening()
     }
 
     private func syncTaps() {
         guard !isPreview else { return }
+        listeningAppID = resolveListeningApp()?.id
+        defer { applyNameListening() }
         let wanted = apps.filter(shouldTap)
         let wantedPIDs = Set(wanted.map(\.ownerPID))
 
@@ -697,6 +716,7 @@ final class AudioEngineManager {
         } else {
             isMasterMuted = false
         }
+        refreshNameListening()
     }
 
     private func symbolName(forDevice deviceID: AudioObjectID, name: String) -> String {
@@ -724,6 +744,81 @@ final class AudioEngineManager {
             return "hifispeaker.fill"
         default:
             return "speaker.wave.2.fill"
+        }
+    }
+
+    private func connectNameAlert() {
+        nameAlert.onArmedChange = { [weak self] in
+            self?.refreshNameListening()
+        }
+        nameAlert.captureSource = { [weak self] in
+            guard let self, let id = self.listeningAppID, let app = self.apps.first(where: { $0.id == id }) else {
+                return nil
+            }
+            return self.taps[app.ownerPID]?.drainCapturedAudio()
+        }
+        nameAlert.raiseVolume = { [weak self] appID in
+            self?.restoreAudibility(forAppID: appID)
+        }
+        nameAlert.undoRaise = { [weak self] in
+            self?.undoRestoredAudibility()
+        }
+    }
+
+    private func resolveListeningApp() -> AudioApp? {
+        guard !isPreview else { return nil }
+        let isArmed = nameAlert.isArmed
+        return apps.first { app in
+            NameAlertPolicy.shouldListen(
+                isArmed: isArmed,
+                role: app.role,
+                isPlaying: app.isPlaying,
+                volume: app.volume,
+                isMuted: app.isMuted,
+                isMasterMuted: isMasterMuted
+            )
+        }
+    }
+
+    private func refreshNameListening() {
+        guard !isPreview else { return }
+        if resolveListeningApp()?.id != listeningAppID {
+            syncTaps()
+        }
+    }
+
+    private func applyNameListening() {
+        let listening = apps.first { $0.id == listeningAppID }
+        for (pid, tap) in taps {
+            tap.setCaptureEnabled(pid == listening?.ownerPID)
+        }
+        nameAlert.setListeningTarget(listening.map { ListeningTarget(appID: $0.id, appName: $0.name) })
+    }
+
+    private func restoreAudibility(forAppID id: String) {
+        guard let app = apps.first(where: { $0.id == id }) else { return }
+        nameAlertRestorePoint = NameAlertRestorePoint(
+            appID: id,
+            volume: app.volume,
+            isMuted: app.isMuted,
+            wasMasterMuted: isMasterMuted
+        )
+        setMuted(false, forAppID: id)
+        if app.volume < NameAlertPolicy.quietVolume {
+            setVolume(VolumeCurve.unity, forAppID: id)
+        }
+        if isMasterMuted {
+            setMasterMuted(false)
+        }
+    }
+
+    private func undoRestoredAudibility() {
+        guard let point = nameAlertRestorePoint else { return }
+        nameAlertRestorePoint = nil
+        setVolume(point.volume, forAppID: point.appID)
+        setMuted(point.isMuted, forAppID: point.appID)
+        if point.wasMasterMuted {
+            setMasterMuted(true)
         }
     }
 

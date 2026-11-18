@@ -23,6 +23,7 @@ struct TapRenderState {
     var currentGain: Float32
     let leftOutputChannel: Int
     let rightOutputChannel: Int
+    var capture: CaptureSink?
 }
 
 struct ChannelCursor {
@@ -180,6 +181,13 @@ func calandoRenderProc(
     }
 
     state.pointee.currentGain = gain
+    state.pointee.capture?.writeMono(
+        left: inLeft,
+        leftStride: inLeftStride,
+        right: inRight,
+        rightStride: inRightStride,
+        frames: frames
+    )
     if energy > 0 {
         state.pointee.sawSignal.pointee.store(true, ordering: .relaxed)
     }
@@ -217,6 +225,7 @@ private final class TapIOSession: @unchecked Sendable {
     let mutedFlag: UnsafeMutablePointer<Atomic<Bool>>
     let slewFrames: UnsafeMutablePointer<Atomic<UInt32>>
     let sawSignal: UnsafeMutablePointer<Atomic<Bool>>
+    let captureRing: CaptureRing
     private var ioProcID: AudioDeviceIOProcID?
     private var isRunning = false
 
@@ -226,7 +235,8 @@ private final class TapIOSession: @unchecked Sendable {
         targetGainBits: UnsafeMutablePointer<Atomic<UInt32>>,
         mutedFlag: UnsafeMutablePointer<Atomic<Bool>>,
         slewFrames: UnsafeMutablePointer<Atomic<UInt32>>,
-        sawSignal: UnsafeMutablePointer<Atomic<Bool>>
+        sawSignal: UnsafeMutablePointer<Atomic<Bool>>,
+        captureRing: CaptureRing
     ) {
         self.ownerPID = ownerPID
         self.renderState = renderState
@@ -234,6 +244,7 @@ private final class TapIOSession: @unchecked Sendable {
         self.mutedFlag = mutedFlag
         self.slewFrames = slewFrames
         self.sawSignal = sawSignal
+        self.captureRing = captureRing
     }
 
     func startIO(on aggregateDeviceID: AudioObjectID) {
@@ -284,6 +295,7 @@ private final class TapIOSession: @unchecked Sendable {
         slewFrames.deallocate()
         sawSignal.deinitialize(count: 1)
         sawSignal.deallocate()
+        captureRing.release()
     }
 
     private func report(_ status: OSStatus, _ operation: String) {
@@ -309,6 +321,7 @@ final class ProcessAudioTap {
     private let mutedFlag: UnsafeMutablePointer<Atomic<Bool>>
     private let slewFrames: UnsafeMutablePointer<Atomic<UInt32>>
     private let sawSignal: UnsafeMutablePointer<Atomic<Bool>>
+    private let captureRing = CaptureRing()
     private let session: TapIOSession
     private let ioQueue: DispatchQueue
 
@@ -355,7 +368,8 @@ final class ProcessAudioTap {
                 sawSignal: sawSignal,
                 currentGain: isMuted ? 0.0 : linearGain,
                 leftOutputChannel: left,
-                rightOutputChannel: right
+                rightOutputChannel: right,
+                capture: captureRing.sink
             )
         )
         session = TapIOSession(
@@ -364,7 +378,8 @@ final class ProcessAudioTap {
             targetGainBits: targetGainBits,
             mutedFlag: mutedFlag,
             slewFrames: slewFrames,
-            sawSignal: sawSignal
+            sawSignal: sawSignal,
+            captureRing: captureRing
         )
     }
 
@@ -382,6 +397,17 @@ final class ProcessAudioTap {
     func setMuted(_ muted: Bool) {
         guard !isReleased else { return }
         mutedFlag.pointee.store(muted, ordering: .relaxed)
+    }
+
+    func setCaptureEnabled(_ enabled: Bool) {
+        guard !isReleased else { return }
+        captureRing.setEnabled(enabled)
+    }
+
+    func drainCapturedAudio() -> CapturedAudio? {
+        guard !isReleased, captureRing.isEnabled else { return nil }
+        let samples = captureRing.drain()
+        return samples.isEmpty ? nil : CapturedAudio(samples: samples, sampleRate: sampleRate)
     }
 
     func start() throws {

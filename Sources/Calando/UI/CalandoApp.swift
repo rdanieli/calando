@@ -16,5 +16,10 @@ struct CalandoApp: App {
             Image(systemName: engine.isMasterMuted ? "speaker.slash.fill" : "slider.vertical.3")
         }
         .menuBarExtraStyle(.window)
+
+        Window("Name Alert", id: NameAlertWindow.id) {
+            NameAlertSettingsView(controller: engine.nameAlert)
+        }
+        .windowResizability(.contentSize)
     }
 }

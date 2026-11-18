@@ -19,18 +19,20 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.2.0</string>
+	<string>1.3.0</string>
 	<key>CFBundleVersion</key>
-	<string>5</string>
+	<string>6</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>Calando taps the audio of your apps only to adjust the volume of each one locally, in real time. No audio is recorded, stored or sent off this Mac.</string>
+	<string>Calando taps the audio of your apps to adjust the volume of each one locally, in real time. If you turn on Name Alert, the audio of a starred app is also transcribed on this Mac to spot your name. No audio is recorded, stored or sent off this Mac.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Name Alert transcribes call audio on this Mac to notice when someone says your name. Nothing is recorded, stored or sent off this Mac.</string>
 </dict>
 </plist>
